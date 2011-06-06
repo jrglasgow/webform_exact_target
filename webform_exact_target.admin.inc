@@ -65,7 +65,7 @@ function webform_exact_target_configure_form($form_state, $node) {
       '#tree' => TRUE,
     );
 
-    foreach($et_list_groups as $type => $et_lists) {
+    foreach ($et_list_groups as $type => $et_lists) {
       $form[WFET_LIST_GROUPS][$type] = array(
         '#type' => 'fieldset',
         '#title' => $type,
