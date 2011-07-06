@@ -106,7 +106,7 @@ function webform_exact_target_webform_submission_insert($node, $submission) {
   $listids = (!empty($form_cfg[WFET_COL_LISTIDS])) ? $form_cfg[WFET_COL_LISTIDS] : NULL;
   
   // Make sure we have the mappings and target list ID
-  if ($mappings && $listid) {
+  if ($mappings && $listids) {
     // Build xref for Webform components keyed to the field name:
     $wf_fields = array();
     foreach ($node->webform['components'] as $idx => $field) {
