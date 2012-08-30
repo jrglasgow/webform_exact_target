@@ -59,9 +59,9 @@ function webform_exact_target_theme($existing, $type, $theme, $path) {
 
 
 /*
- * Implements hook_nodeapi_delete().
+ * Implements hook_node_delete().
  */
-function webform_exact_target_nodeapi_delete($node) {
+function webform_exact_target_node_delete($node) {
   // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
   // We're only interested in nodes of type 'webform'
   if ('webform' == $node->type) {
@@ -72,9 +72,9 @@ function webform_exact_target_nodeapi_delete($node) {
 
 
 /*
- * Implements hook_nodeapi_revision_delete().
+ * Implements hook_node_revision_delete().
  */
-function webform_exact_target_nodeapi_revision_delete($node) {
+function webform_exact_target_node_revision_delete($node) {
   // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
   // We're only interested in nodes of type 'webform'
   if ('webform' == $node->type) {
