@@ -6,3 +6,6 @@ package = Webform
 core = 7.x
 dependencies[] = webform
 dependencies[] = exact_target_api
+files[] = webform_exact_target.module
+files[] = webform_exact_target.install
+files[] = webform_exact_target.admin.inc
