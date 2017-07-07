@@ -4,15 +4,15 @@
  * Main module for the Webform ExactTarget integration.
  *
  * This file implements hooks used to tie the ExactTarget API module into the
- * Webforms module to allow forms to subscrivbe users to ExactTarget
+ * Webforms module to allow forms to subscribe users to ExactTarget
  * marketing lists.
  */
 
-/*
+/**
  * Start of Drupal hook implementations
  */
 
-/*
+/**
  * Implements hook_menu().
  */
 function webform_exact_target_menu() {
@@ -32,7 +32,7 @@ function webform_exact_target_menu() {
   return $items;
 }
 
-/*
+/**
  * Implements hook_theme().
  */
 function webform_exact_target_theme($existing, $type, $theme, $path) {
@@ -43,8 +43,7 @@ function webform_exact_target_theme($existing, $type, $theme, $path) {
   );
 }
 
-
-/*
+/**
  * Implements hook_node_delete().
  */
 function webform_exact_target_node_delete($node) {
@@ -56,8 +55,7 @@ function webform_exact_target_node_delete($node) {
   }
 }
 
-
-/*
+/**
  * Implements hook_node_revision_delete().
  */
 function webform_exact_target_node_revision_delete($node) {
@@ -69,12 +67,11 @@ function webform_exact_target_node_revision_delete($node) {
   }
 }
 
-
-/*
+/**
  * Start of Drupal Webform 3.x hook implementations
  */
 
-/*
+/**
  * Implements hook_webform_submission_insert().
  */
 function webform_exact_target_webform_submission_insert($node, $submission) {
@@ -112,7 +109,7 @@ function webform_exact_target_webform_submission_insert($node, $submission) {
   }
 }
 
-/*
+/**
  * Implements hook_webform_select_options_info().
  * See webform/webform_hooks.php for details
  */
@@ -146,7 +143,7 @@ function webform_exact_target_webform_select_options_info() {
   return $items;
 }
 
-/*
+/**
  * Callback for specific dropdown list, referenced by
  * webform_exact_target_webform_select_options_info
  */
@@ -164,7 +161,7 @@ function webform_exact_target_webform_select_options_values($component, $flat, $
   return $options;
 }
 
-/*
+/**
  * Callback for specific dropdown list, referenced by
  * webform_exact_target_webform_select_options_info
  */
@@ -191,11 +188,11 @@ function webform_exact_target_webform_select_options_lists($component, $flat, $f
   return $options;
 }
 
-/*
+/**
  * Start of "private" utility functions for this module
  */
 
-/*
+/**
  * Helper function for minimizing DB queries to retrieve config info
  */
 function _webform_exact_target_get_config($node = NULL) {
@@ -212,7 +209,7 @@ function _webform_exact_target_get_config($node = NULL) {
   return $cfg;
 }
 
-/*
+/**
  * Helper function for minimizing DB queries to retrieve config info
  */
 function _webform_exact_target_set_config($cfg) {
@@ -221,7 +218,7 @@ function _webform_exact_target_set_config($cfg) {
   }
 }
 
-/*
+/**
  * Helper function to retrieve field mappings for this form (node)
  */
 function _webform_exact_target_get_mappings($node) {
@@ -259,7 +256,7 @@ function _webform_exact_target_get_mappings($node) {
   return $cfg[$nid][$vid];
 }
 
-/*
+/**
  * Helper function to set field mappings for this form (node)
  */
 function _webform_exact_target_set_mappings($node, $form_cfg) {
@@ -291,7 +288,7 @@ function _webform_exact_target_set_mappings($node, $form_cfg) {
   return $result;
 }
 
-/*
+/**
  * Helper function to delete field mappings for this form (node) when it is deleted
  */
 function _webform_exact_target_delete_mappings($node, $all_revs = FALSE) {
