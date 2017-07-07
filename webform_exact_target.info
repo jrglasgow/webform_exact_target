@@ -1,11 +1,11 @@
 ; $Id:
 
 name = "Webform ExactTarget"
-description = "Provides integration between Webform 3.x and the ExactTarget API module."
+description = "Provides integration between Webform 7.x-4.x and the ExactTarget API 7.x-2.x module."
 package = Webform
 core = 7.x
-dependencies[] = webform
-dependencies[] = exact_target_api
+dependencies[] = webform (7.x-4.x)
+dependencies[] = exact_target_api (7.x-2.x)
 files[] = webform_exact_target.module
 files[] = webform_exact_target.install
 files[] = webform_exact_target.admin.inc
