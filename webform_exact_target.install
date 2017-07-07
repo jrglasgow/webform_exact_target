@@ -14,34 +14,34 @@ function webform_exact_target_schema() {
   $schema = array();
 
   // Define mapping storage for each webform
-  $schema[WFET_TABLE_MAPPINGS] = array(
+  $schema['wfet_mappings'] = array(
     'description' => 'Table containing mappings for Webform fields to ET fields per node',
     'fields' => array(
-      WFET_COL_NID => array(
+      'nid' => array(
         'description' => 'Node ID of Webform',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      WFET_COL_VID => array(
+      'vid' => array(
         'description' => 'Version ID of Webform node',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
-      WFET_COL_LISTIDS => array(
+      'listid' => array(
         'description' => 'ET Subscription list ID(s) for this form',
         'type' => 'text',
         'size' => 'medium',
       ),
-      WFET_COL_MAPPINGS => array(
+      'mappings' => array(
         'description' => 'Mapping for fields',
         'type' => 'text',
         'size' => 'medium',
       ),
     ), // fields
-    'primary key' => array(WFET_COL_NID),
+    'primary key' => array('nid'),
   );
   return $schema;
 }

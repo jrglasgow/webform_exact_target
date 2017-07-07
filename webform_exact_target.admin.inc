@@ -32,8 +32,8 @@ function webform_exact_target_configure_page($node) {
 function webform_exact_target_configure_form($form, $form_state, $node) {
   $form = array();
   $form_cfg = _webform_exact_target_get_mappings($node);
-  $mappings = (!empty($form_cfg[WFET_COL_MAPPINGS])) ? $form_cfg[WFET_COL_MAPPINGS] : array();
-  $def_listids = (!empty($form_cfg[WFET_COL_LISTIDS])) ? $form_cfg[WFET_COL_LISTIDS] : array();
+  $mappings = (!empty($form_cfg['mappings'])) ? $form_cfg['mappings'] : array();
+  $def_listids = (!empty($form_cfg['listid'])) ? $form_cfg['listid'] : array();
 
   // Get the ExactTarget profile attributes
   $et_attrs = exact_target_api_get_attributes();
@@ -62,7 +62,7 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
     }
     ksort($et_list_groups);
 
-    $form[WFET_LIST_GROUPS] = array(
+    $form['wfet_list_groups'] = array(
       '#type' => 'fieldset',
       '#title' => t('ExactTarget Subscription Lists'),
       '#description' => t('Please select the target subscription list(s) that may be subscribed to via this Webform'),
@@ -70,14 +70,14 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
     );
 
     foreach ($et_list_groups as $type => $et_lists) {
-      $form[WFET_LIST_GROUPS][$type] = array(
+      $form['wfet_list_groups'][$type] = array(
         '#type' => 'fieldset',
         '#title' => check_plain($type),
         '#tree' => TRUE,
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
       );
-      $form[WFET_LIST_GROUPS][$type][WFET_COL_LISTIDS] = array(
+      $form['wfet_list_groups'][$type]['listid'] = array(
         '#type' => 'checkboxes',
         '#options' => $et_lists,
         '#default_value' => $def_listids,
@@ -85,12 +85,12 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
       );
     }
 
-    $form[WFET_COL_MAPPINGS] = array(
+    $form['mappings'] = array(
       '#tree' => TRUE,
     );
     foreach ($et_attrs as $attr) {
       $defval = (!empty($mappings[$attr['fieldid']])) ? $mappings[$attr['fieldid']] : _webform_exact_target_best_match($attr['name'], $wf_fields);
-      $form[WFET_COL_MAPPINGS][$attr['fieldid']] = array(
+      $form['mappings'][$attr['fieldid']] = array(
         '#type' => 'select',
         '#title' => check_plain($attr['name']),
         '#options' => (ET_TRUE == $attr['required']) ? $wf_fields_req : $wf_fields,
@@ -101,11 +101,11 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
 
     // Set node info as it doesn't get passed to the submit handler
 
-    $form[WFET_COL_NID] = array(
+    $form['nid'] = array(
       '#type' => 'hidden',
       '#value' => $node->nid,
     );
-    $form[WFET_COL_VID] = array(
+    $form['vid'] = array(
       '#type' => 'hidden',
       '#value' => (!empty($node->vid)) ? $node->vid : 0,
     );
@@ -143,16 +143,16 @@ function theme_webform_exact_target_configure_form($variables) {
 
   // Render list select:
 
-  $output .= drupal_render($form[WFET_LIST_GROUPS]);
+  $output .= drupal_render($form['wfet_list_groups']);
 
-  if (!empty($form[WFET_COL_MAPPINGS])) {
+  if (!empty($form['mappings'])) {
     // Render fields as two-column table:
 
     $header = array(t('ExactTarget Field'), t('Webform Field'));
     $rows = array();
-    foreach (element_children($form[WFET_COL_MAPPINGS]) as $id) {
+    foreach (element_children($form['mappings']) as $id) {
       $row = array();
-      $field = &$form[WFET_COL_MAPPINGS][$id];
+      $field = &$form['mappings'][$id];
       $label = $field['#title'];
       if ($field['#required']) {
         $label .= ' <span class="form-required" title="This field is required.">*</span>';
@@ -188,11 +188,11 @@ function webform_exact_target_configure_form_clear($form, &$form_state) {
 function webform_exact_target_configure_form_validate($form, &$form_state) {
   $values = $form_state['values'];
 
-  foreach ($values[WFET_COL_MAPPINGS] as $id => $val) {
+  foreach ($values['mappings'] as $id => $val) {
     // Check that a source field was selected:
 
-    if ($form[WFET_COL_MAPPINGS][$id]['#required'] && '0' == $val) {
-      form_set_error($id, t('No source Webform field selected for required ExactTarget field %field.  Please select a Webform field from the dropdown.', array('%field' => $form[WFET_COL_MAPPINGS][$id]['#title'])));
+    if ($form['mappings'][$id]['#required'] && '0' == $val) {
+      form_set_error($id, t('No source Webform field selected for required ExactTarget field %field.  Please select a Webform field from the dropdown.', array('%field' => $form['mappings'][$id]['#title'])));
     }
   }
 }
@@ -201,17 +201,17 @@ function webform_exact_target_configure_form_validate($form, &$form_state) {
  * Implement callback for submit handling of form 'webform_exact_target_api_configure_form'
  */
 function webform_exact_target_configure_form_submit($form, &$form_state) {
-  $node = node_load($form_state['values'][WFET_COL_NID], $form_state['values'][WFET_COL_VID]);
+  $node = node_load($form_state['values']['nid'], $form_state['values']['vid']);
   $mappings = $form_state['values'];
 
   // Unwind list fieldsets into flat list
-  unset($mappings[WFET_LIST_GROUPS]);
-  $mappings[WFET_COL_LISTIDS] = array();
-  foreach ($form_state['values'][WFET_LIST_GROUPS] as $type => $elems) {
-    $lists = $elems[WFET_COL_LISTIDS];
+  unset($mappings['wfet_list_groups']);
+  $mappings['listid'] = array();
+  foreach ($form_state['values']['wfet_list_groups'] as $type => $elems) {
+    $lists = $elems['listid'];
     foreach ($lists as $key => $val) {
       if ($key == $val) {
-        $mappings[WFET_COL_LISTIDS][] = $val;
+        $mappings['listid'][] = $val;
       }
     }
   }
