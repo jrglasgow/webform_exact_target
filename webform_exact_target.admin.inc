@@ -4,6 +4,10 @@
  * This file contains the admin and GUI callbacks for the module that are not needed in day-to-day operations
  */
 
+define('WFET_CREATE_NEW_FIELD', -1);
+define('WFET_LEAVE_FIELD_BLANK', -2);
+define('WFET_CREATE_HIDDEN_FIELD', -3);
+
 /*
  * Searches for a best match for default values
  */
@@ -26,7 +30,8 @@ function _webform_exact_target_best_match($field, $options) {
 function webform_exact_target_configure_page($node) {
   return drupal_get_form('webform_exact_target_configure_form', $node);
 }
-/*
+
+/**
  * Implements callback for form construction
  */
 function webform_exact_target_configure_form($form, $form_state, $node) {
@@ -36,19 +41,48 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
   $def_listids = (!empty($form_cfg['listid'])) ? $form_cfg['listid'] : array();
 
   // Get the ExactTarget profile attributes
-  $et_attrs = exact_target_api_get_attributes();
-  if (!empty($et_attrs)) {
+  $all_attrs = exact_target_api_get_attributes();
+  $named_attrs = array();
+  foreach ($all_attrs->results AS $attr) {
+    $named_attrs[$attr->Name] = $attr;
+  }
+  // we have a long list of attributes, but the data doesn't tell us which
+  // attributes are part of the subscriber profile, so we load an example
+  // subscriber to see what attributes are in the profile
+  $example_subscriber = webform_exact_target_example_subscriber();
+  if (is_object($example_subscriber->Attributes)) {
+    $example_subscriber->Attributes = array($example_subscriber->Attributes);
+  }
+  $email_attr = $named_attrs['EmailAddress'];
+  $email_attr->Name = 'SubscriberEmail';
+  $email_attr->CustomerKey = 'SubscriberEmail';
+  $email_attr->IsRequired = TRUE;
+  unset($email_attr->DataExtension);
+  $profile_attrs = array($email_attr);
+  foreach ($example_subscriber->Attributes AS $attr) {
+    $profile_attrs[] = $named_attrs[$attr->Name];
+  }
+  
+  if (!empty($profile_attrs)) {
     // Get all available Webform fields and build option list for mapping
 
-    $wf_fields = array('0' => '<< Select Webform Field >>');
-    $wf_fields_req = array('0' => '<< Select Webform Field >>');
+    $wf_fields = array(
+      WFET_LEAVE_FIELD_BLANK => t('Leave Field Blank'),
+      // TODO implement this
+      // WFET_CREATE_NEW_FIELD => t('Create New Webform Field'),
+    );
+    $wf_fields_req = array(
+      // TODO implement this
+      // WFET_CREATE_NEW_FIELD => t('Create New Webform Field'),
+      WFET_CREATE_HIDDEN_FIELD => t('Create New Hidden Webform Field'),
+    );
     foreach ($node->webform['components'] as $field) {
       $name = $field['name'];
       if ($field['mandatory']) {
         $name .= ' *';
       }
       $wf_fields[$field['form_key']] = $name;
-      if ($field['mandatory']) {
+      if ($field['required']) {
         $wf_fields_req[$field['form_key']] = $name;
       }
     }
@@ -56,9 +90,10 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
     // Get all available ET lists and build option list:
     $tmp_lists = exact_target_api_get_lists();
     $et_list_groups = array();
-    foreach ($tmp_lists as $listid) {
-      $list_info = exact_target_api_get_list_info($listid);
-      $et_list_groups[$list_info['list_type']][$listid] = t('Subscribe to emails from %listname', array('%listname' => $list_info['list_name']));
+
+    foreach ($tmp_lists as $listid => $list_info) {
+      //$list_info = exact_target_api_get_list_info($listid);
+      $et_list_groups[$list_info->Type][$listid] = t('Subscribe to emails from %listname', array('%listname' => $list_info->ListName));
     }
     ksort($et_list_groups);
 
@@ -88,15 +123,19 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
     $form['mappings'] = array(
       '#tree' => TRUE,
     );
-    foreach ($et_attrs as $attr) {
-      $defval = (!empty($mappings[$attr['fieldid']])) ? $mappings[$attr['fieldid']] : _webform_exact_target_best_match($attr['name'], $wf_fields);
-      $form['mappings'][$attr['fieldid']] = array(
+    foreach ($profile_attrs as $attr) {
+      if (substr($attr->Name, 0,1) == '_') {
+        continue;
+      }
+      $defval = (!empty($mappings[$attr->CustomerKey])) ? $mappings[$attr->CustomerKey] : _webform_exact_target_best_match($attr->Name, $wf_fields);
+      $form['mappings'][$attr->Name] = array(
         '#type' => 'select',
-        '#title' => check_plain($attr['name']),
-        '#options' => (ET_TRUE == $attr['required']) ? $wf_fields_req : $wf_fields,
-        '#default_value' => $defval,
-        '#required' => (ET_TRUE == $attr['required']) ? TRUE : FALSE,
+        '#title' => check_plain($attr->Name),
+        '#options' => $attr->IsRequired ? $wf_fields_req : $wf_fields,
+        '#default_value' => $defval ?: ( $attr->IsRequired ? WFET_CREATE_NEW_FIELD : WFET_LEAVE_FIELD_BLANK),
+        '#required' => $attr->IsRequired ? TRUE : FALSE,
       );
+      $form['#attribute_specs'][$attr->Name] = $attr;
     }
 
     // Set node info as it doesn't get passed to the submit handler
@@ -134,7 +173,7 @@ function webform_exact_target_configure_form($form, $form_state, $node) {
   return $form;
 }
 
-/*
+/**
  * Implements theme callback for form rendering
  */
 function theme_webform_exact_target_configure_form($variables) {
@@ -172,7 +211,7 @@ function theme_webform_exact_target_configure_form($variables) {
   return $output;
 }
 
-/*
+/**
  * Validate function for our reset button
  */
 function webform_exact_target_configure_form_clear($form, &$form_state) {
@@ -182,7 +221,7 @@ function webform_exact_target_configure_form_clear($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
-/*
+/**
  * Implement callback for validation of form 'webform_exact_target_api_configure_form'
  */
 function webform_exact_target_configure_form_validate($form, &$form_state) {
@@ -197,15 +236,21 @@ function webform_exact_target_configure_form_validate($form, &$form_state) {
   }
 }
 
-/*
+/**
  * Implement callback for submit handling of form 'webform_exact_target_api_configure_form'
  */
 function webform_exact_target_configure_form_submit($form, &$form_state) {
   $node = node_load($form_state['values']['nid'], $form_state['values']['vid']);
   $mappings = $form_state['values'];
 
+  foreach ($mappings['mappings'] AS $key => $value) {
+    if ($value == WFET_CREATE_NEW_FIELD) {
+      $mappings['mappings'][$key] = webform_exact_target_create_new_field($form['#attribute_specs'][$key]);
+    }
+  }
+
   // Unwind list fieldsets into flat list
-  unset($mappings['wfet_list_groups']);
+
   $mappings['listid'] = array();
   foreach ($form_state['values']['wfet_list_groups'] as $type => $elems) {
     $lists = $elems['listid'];
@@ -218,4 +263,19 @@ function webform_exact_target_configure_form_submit($form, &$form_state) {
 
   _webform_exact_target_set_mappings($node, $mappings);
   drupal_set_message(t('Webform ExactTarget settings successfully saved.'), 'status');
+}
+
+/**
+ * create a new field for the attributes
+ *
+ * This function currently does nothing, it still needs to be implemented.
+ * TODO
+ *
+ * @param $specs
+ *  Object containing the attribute information
+ * @return
+ *  string with the new field machine name
+ */
+function webform_exact_target_create_new_field($specs) {
+
 }

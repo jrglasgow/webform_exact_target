@@ -8,7 +8,7 @@
  * marketing lists.
  */
 
-/**
+/*
  * Start of Drupal hook implementations
  */
 
@@ -70,7 +70,33 @@ function webform_exact_target_node_revision_delete($node) {
 /**
  * Start of Drupal Webform 3.x hook implementations
  */
+function webform_exact_target_webform_submission_create_alter(&$submission, &$node, &$account, &$form_state) {
+  $form_cfg = _webform_exact_target_get_mappings($node);
+  $mappings = (!empty($form_cfg['mappings'])) ? $form_cfg['mappings'] : NULL;
+  $listids = (!empty($form_cfg['listid'])) ? $form_cfg['listid'] : NULL;
 
+  $data = array();
+  foreach ($form_state['webform']['component_tree']['children'] AS $key => $field) {
+    switch ($field['type']) {
+      case 'email':
+      case 'textfield':
+        $data[$field['form_key']] = $submission->data[$key][0];
+        break;
+      case 'select':
+        if ($field['extra']['multiple']) {
+          $data[$field['form_key']] = $submission->data[$key];
+        }
+        else {
+          $data[$field['form_key']] = $submission->data[$key][0];
+        }
+        break;
+      default:
+        $data[$field['form_key']] = $submission->data[$key];
+    }
+
+  }
+
+}
 /**
  * Implements hook_webform_submission_insert().
  */
@@ -102,17 +128,18 @@ function webform_exact_target_webform_submission_insert($node, $submission) {
       }
     }
     // Now call subscribe API for each list
-
-    foreach ($listids as $listid) {
-      $result = exact_target_api_add_subscriber($listid, $sub_fields);
-    }
+    $result = exact_target_api_add_subscriber($listid, $sub_fields);
   }
 }
 
 /**
  * Implements hook_webform_select_options_info().
  * See webform/webform_hooks.php for details
+ *
+ * the functionality of grabbing select list fields info from the server isn't
+ * working properly with the SDK, so this is disabled.
  */
+/*
 function webform_exact_target_webform_select_options_info() {
   $items = array();
 
@@ -142,7 +169,7 @@ function webform_exact_target_webform_select_options_info() {
 
   return $items;
 }
-
+*/
 /**
  * Callback for specific dropdown list, referenced by
  * webform_exact_target_webform_select_options_info
@@ -266,24 +293,17 @@ function _webform_exact_target_set_mappings($node, $form_cfg) {
   if (!$node || empty($node->nid)) {
     return;
   }
-  $nid = $node->nid;
-  $vid = (!empty($node->vid)) ? $node->vid : 0;
-  $map_data = serialize($form_cfg['mappings']);
-  $listids = serialize($form_cfg['listid']);
-  
-  // REPLACE INTO is mySQL specific so using delete then insert approach
-  db_delete('wfet_mappings')
-  ->condition('nid', $nid)
-  ->condition('vid', $vid)
-  ->execute();
-  
-  $result = db_insert('wfet_mappings')
-  ->fields(array(
-      'nid' => $nid,
-      'vid' => $vid,
-      'mappings' => $map_data, 
-      'listid' => $listids,
-  ))->execute();
+
+  $result = db_merge('wfet_mappings')
+    ->key(array(
+      'nid' => $node->nid,
+      'vid' => $node->vid,
+    ))
+    ->fields(array(
+      'mappings' => serialize($form_cfg['mappings']),
+      'listid'  => serialize($form_cfg['listid']),
+    ))
+    ->execute();
 
   return $result;
 }
@@ -311,3 +331,23 @@ function _webform_exact_target_delete_mappings($node, $all_revs = FALSE) {
   return $result;
 }
 
+/**
+ * fetch the details of an example subscriber, if one doesn't exist create one
+ * and return that
+ */
+function webform_exact_target_example_subscriber() {
+  $email = 'webform_exact_target_example@' . $_SERVER['HTTP_HOST'] . '.example.com';
+  $subscriber = exact_target_api_get_subscriber_by_email($email);
+  if (empty($subscriber->lists)) {
+    // we are assuming that the master subscriber list or 'All Subscribers' is
+    // the first in the list
+    $lists = exact_target_api_get_lists();
+    $master_list = array_shift($lists);
+    // the subscriber doesn't exist yet, add it
+    $add = exact_target_api_add_subscriber($master_list->ID, $email);
+    // now unsibscribe the user
+    $unsub = exact_target_api_unsubscribe_all($email);
+    $subscriber = exact_target_api_get_subscriber_by_email($email);
+  }
+  return $subscriber;
+}
